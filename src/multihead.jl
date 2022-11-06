@@ -1,3 +1,8 @@
+#=
+TODO:
+is there a way to run only the recurrent part of a network to get the desired hidden state
+without needing to run everything following the initial recurrent part?
+=#
 struct MultiHead{B, H<:Tuple}
     base::B
     heads::H
@@ -15,6 +20,43 @@ function (m::MultiHead)(x, i::Int)
 end
 
 Flux.@functor MultiHead
+
+
+struct RecurMultiHead{R, B, H<:Tuple}
+    recur::R
+    base::B
+    heads::H
+    RecurMultiHead(recur, base, args...) = new{typeof(recur), typeof(base), typeof(args)}(recur, base, args)
+end
+
+function (m::RecurMultiHead)(x)
+    x = m.recur(x)
+    x = m.base(x)
+    return Tuple(head(x) for head ∈ m.heads)
+end
+
+function (m::RecurMultiHead)(x, i::Int)
+    x = m.recur(x)
+    x = m.base(x)
+    return m.heads[i](x)
+end
+
+function process_full(m::RecurMultiHead, X)
+    [m(x_i) for x_i ∈ X]
+end
+
+function process_last(m::RecurMultiHead, X)
+    x = m.recur(first(X))
+    for i ∈ eachindex(X)[2:end]
+        x = m.recur(X[i])
+    end
+    x = m.base(x)
+    return Tuple(head(x) for head ∈ m.heads)
+end
+
+Flux.@functor RecurMultiHead
+
+
 
 function weighted_sample(rng::Random.AbstractRNG, σ::AbstractVector)
     t = rand(rng)

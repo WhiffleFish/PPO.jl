@@ -10,6 +10,7 @@ struct PPOSolver{AC, MEM, OPT}
     batch_size::Int
     c_value::Float32
     c_entropy::Float32
+    ϵ::Float32
 end
 
 function PPOSolver(
@@ -23,6 +24,7 @@ function PPOSolver(
     batch_size::Int = 16,
     c_value = 1.0f0,
     c_entropy = 0.1f0,
+    ϵ = 0.20f0
     )
 
     return PPOSolver(
@@ -36,7 +38,8 @@ function PPOSolver(
         max_steps,
         batch_size,
         c_value,
-        c_entropy
+        c_entropy,
+        ϵ
     )
 end
 
@@ -45,13 +48,9 @@ end
 Flux.@functor PPOSolver
 
 function POMDPs.solve(sol::PPOSolver, pomdp::POMDP)
-    γ = discount(pomdp)
-    advantages = Vector{Float32}[]
     for i ∈ 1:n_iters
-        for act ∈ 1:n_actors
-            oa_hist, r_hist, v_hist = rollout(sol, pomdp)
-            Â = generalized_advantage_estimate(r_hist, v_hist, γ, sol.λ_GAE)
-            push!(advantages,Â)
-        end
+        empty!(sol.mem)
+        gen_data!(sol, pomdp)
+        train!(sol)
     end
 end
