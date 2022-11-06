@@ -30,9 +30,9 @@ struct RecurMultiHead{R, B, H<:Tuple}
 end
 
 function (m::RecurMultiHead)(x)
-    x = m.recur(x)
-    x = m.base(x)
-    return Tuple(head(x) for head ∈ m.heads)
+    u1 = m.recur(x)
+    u2 = m.base(u1)
+    return map(f -> f(u2), m.heads)
 end
 
 function (m::RecurMultiHead)(x, i::Int)
@@ -46,12 +46,12 @@ function process_full(m::RecurMultiHead, X)
 end
 
 function process_last(m::RecurMultiHead, X)
-    x = m.recur(first(X))
+    u1 = m.recur(first(X))
     for i ∈ eachindex(X)[2:end]
-        x = m.recur(X[i])
+        u1 = m.recur(X[i])
     end
-    x = m.base(x)
-    return Tuple(head(x) for head ∈ m.heads)
+    u2 = m.base(u1)
+    return map(f -> f(u2), m.heads)
 end
 
 Flux.@functor RecurMultiHead

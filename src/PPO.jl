@@ -4,6 +4,8 @@ using POMDPs
 using Flux
 using Base.Iterators
 using Statistics
+using ProgressMeter
+using ChainRulesCore
 using Random
 
 export PPOSolver, MultiHead
@@ -14,8 +16,5 @@ include("multihead.jl")
 include("rollout.jl")
 include("train.jl")
 include("solver.jl")
-
-
-
 
 end # module PPO

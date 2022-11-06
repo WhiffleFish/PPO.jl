@@ -48,7 +48,7 @@ end
 Flux.@functor PPOSolver
 
 function POMDPs.solve(sol::PPOSolver, pomdp::POMDP)
-    for i ∈ 1:n_iters
+    @showprogress for i ∈ 1:sol.n_iters
         empty!(sol.mem)
         gen_data!(sol, pomdp)
         train!(sol)

@@ -11,7 +11,9 @@ end
 function surrogate_loss(net, data, ϵ, c_value, c_entropy)
     l = 0.0f0
     for (h,a,p,adv,v) ∈ data
-        Flux.reset!(net)
+        ChainRulesCore.ignore_derivatives() do
+            Flux.reset!(net)
+        end
         a_dist, v̂ = process_last(net,h)
         r_t = a_dist[a] / p
         l += min(r_t*adv, clamp(r_t, 1-ϵ, 1+ϵ)*adv)
@@ -21,15 +23,29 @@ function surrogate_loss(net, data, ϵ, c_value, c_entropy)
     return -l
 end
 
-function entropy(v::AbstractVector)
+@inline function xlogx(x::Number)
+    result = x * log(x)
+    return iszero(x) ? zero(result) : result
+end
+
+@inline function entropy(v::AbstractVector)
     s = zero(eltype(v))
     @inbounds @simd for i ∈ eachindex(v)
         v_i = v[i]
-        s -= v_i*log(v_i)
+        s -= xlogx(v_i)
     end
     return s
 end
 
 function train!(sol)
-
+    net = sol.actor_critic
+    p = Flux.params(net)
+    opt = sol.opt
+    for i ∈ 1:sol.n_epochs
+        data = sample_data(sol.mem, sol.batch_size)
+        ∇ = Flux.gradient(p) do
+            surrogate_loss(net, data, sol.ϵ, sol.c_value, sol.c_entropy)
+        end
+        Flux.Optimise.update!(opt, p, ∇)
+    end
 end

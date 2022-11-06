@@ -29,13 +29,6 @@ end
 
 Base.length(h::HistoryMemory) = length(h.oa)
 
-function Base.getindex(h::HistoryMemory{H}, i) where H
-    @boundscheck checkbounds(h.rewards, i)
-    l = h.lengths[i]
-    idxs = (i-(l-1)):i
-    return (h.oa[idxs], h.rewards[i], h.values[i])
-end
-
 function Base.append!(mem::HistoryMemory, oa, r, a, v, p, adv)
     l_buffer = length(mem)
     l_data = length(r)
@@ -57,6 +50,7 @@ end
 
 
 function Base.getindex(mem::HistoryMemory, i)
+    @boundscheck checkbounds(mem.rewards, i)
     return (
         get_hist(mem, i),
         mem.actions[i],
