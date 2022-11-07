@@ -1,5 +1,6 @@
 function rollout(policy, pomdp::POMDP, max_steps::Int=policy.max_steps, s=rand(initialstate(pomdp)))
     Flux.reset!(policy)
+    A = actions(pomdp)
     γ = discount(pomdp)
     step = 0
     oa = init_hist(pomdp)
@@ -11,7 +12,7 @@ function rollout(policy, pomdp::POMDP, max_steps::Int=policy.max_steps, s=rand(i
     while step < max_steps && !isterminal(pomdp, s)
         a_dist, v = policy(oa)
         a = weighted_sample(a_dist)
-        s, o, r = @gen(:sp,:o,:r)(pomdp, s, a)
+        s, o, r = @gen(:sp,:o,:r)(pomdp, s, A[a])
         push!(oa_hist, oa)
         push!(r_hist, r)
         push!(a_hist, a)

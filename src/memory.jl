@@ -69,6 +69,21 @@ sample_data(mem::HistoryMemory, n) = sample_data(Random.GLOBAL_RNG, mem, n)
 
 get_hist(hist::HistoryMemory, i) = hist.oa[hist.first[i]:i]
 
+function cumulative_rewards(mem::HistoryMemory)
+    L = length(mem)
+    n = 0
+    v = 0.0f0
+    first_idx = 1
+    while first_idx < L
+        l = mem.lengths[first_idx]
+        last_idx = first_idx + l - 1
+        v += sum(@view(mem.rewards[first_idx:last_idx]))
+        n += 1
+        first_idx = last_idx + 1
+    end
+    return v / n
+end
+
 function generalized_advantage_estimate(rewards, values, γ, λ)
     gae = 0.0f0
     v = last(values)
@@ -78,8 +93,7 @@ function generalized_advantage_estimate(rewards, values, γ, λ)
         δ = rewards[i] + γ * values[i+1] - values[i]
         gae = δ + γ * λ * gae
         Â[i] = gae
-        v = rewards[i] + γ*v
-        v_vec[i] = v
+        v_vec[i] = v = rewards[i] + γ*v
     end
     return Â, v_vec
 end

@@ -15,37 +15,77 @@ PPO.vec_oa(::TigerPOMDP, o, a) = SA[Float32(o),Float32(a)]
 PPO.init_hist(::TigerPOMDP) = @SVector zeros(Float32, 2)
 h0 = PPO.init_hist(pomdp)
 
-ac = PPO.RecurMultiHead(LSTM(2 => 16), Dense(16=>16, relu), Chain(Dense(16=>3), softmax), Dense(16=>1))
-sol = PPOSolver(ac)
+ac = PPO.RecurMultiHead(
+    Chain(LSTM(2=>16), LSTM(16=>16)),
+    Dense(16,16, tanh),
+    Chain(Dense(16=>3), softmax),
+    Dense(16=>1)
+)
+
+sol = PPOSolver(
+    ac,
+    optimizer = Adam(Float32(1e-4)),
+    n_actors = 50,
+    n_iters = 100,
+    n_epochs = 100,
+    batch_size = 64,
+    c_entropy = 0.05f0,
+    c_value = 0.01f0,
+    ϵ = 0.2
+)
+solve(sol, pomdp)
+
+sol(h0)
+sol(SA[0.0f0, 1.0f0])
+
+##
+
+
+Flux.reset!(sol.actor_critic.recur)
+vv1 = [ac.recur(h0)]
+for i ∈ 1:10
+    push!(vv1, ac.recur(SA[0.0f0, 1.0f0]))
+end
+
+Flux.reset!(sol.actor_critic.recur)
+vv2 = [ac.recur(h0)]
+for i ∈ 1:10
+    push!(vv2, ac.recur(SA[1.0f0, 1.0f0]))
+end
+
+using Plots
+i = 1
+j = 2
+plot(getindex.(vv1, i), getindex.(vv1, j), lw=2, label="")
+plot!(getindex.(vv2, i), getindex.(vv2, j), lw=2, label="")
+
+p = Flux.params(sol.actor_critic.recur)
+p |> propertynames
+
+pp = collect(p.params)
+histogram(vec(pp[7]))
+
+
+i = 1
+j = 2
+plot(getindex.(vv1, i), getindex.(vv1, j), lw=2)
+plot!(getindex.(vv2, i), getindex.(vv2, j), lw=2, ls=:dash)
+
+PPO.sample_data(sol.mem, 10)[1]
+
+
+PPO.cumulative_rewards(sol.mem)
+
+ac.recur[1].cell
+ac.recur[2].cell.Wh
+
+Flux.reset!(sol)
+sol(h0)
 
 @profiler solve(sol, pomdp)
 
+
+
 ##
-net = sol.actor_critic
-opt = sol.opt
-data = PPO.sample_data(sol.mem, sol.batch_size)
-PPO.surrogate_loss(net, data, sol.ϵ, sol.c_value, sol.c_entropy)
-
-net([SA[0.0f0, 0.10f0]] for i ∈ 1:10])
-PPO.process_last(net, [SA[0.0f0, 0.10f0] for i ∈ 1:10])
-
-@code_warntype net(SA[0.0f0, 0.10f0])
-@code_warntype PPO.process_last(net, [SA[0.0f0, 0.10f0] for i ∈ 1:10])
-
-using ChainRulesCore
-p = Flux.params(net)
-∇ = Flux.gradient(p) do
-    ChainRulesCore.ignore_derivatives() do
-        Flux.reset!(net)
-    end
-    a_dist, v = net(SA[0.0f0, 0.1f0])
-    only(v) - 1.
-end
-
-
-
-
-## type stable tuple mapping?!?
-t = (1,2,3)
-ac.heads
-@code_warntype map(x->2x, t)
+using SARSOP
+sarsop_policy = solve(SARSOPSolver(), pomdp)
