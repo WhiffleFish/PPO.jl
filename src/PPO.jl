@@ -15,6 +15,7 @@ include("utils.jl")
 include("multihead.jl")
 include("rollout.jl")
 include("train.jl")
+include("logging.jl")
 include("solver.jl")
 
 end # module PPO

@@ -84,16 +84,30 @@ function cumulative_rewards(mem::HistoryMemory)
     return v / n
 end
 
+# function generalized_advantage_estimate(rewards, values, γ, λ)
+#     gae = 0.0f0
+#     v = last(values)
+#     Â = zero(rewards)
+#     for i ∈ (length(rewards)-1):-1:1
+#         δ = rewards[i] + γ * values[i+1] - values[i]
+#         gae = δ + γ * λ * gae
+#         Â[i] = gae
+#         v = rewards[i] + γ*v
+#     end
+#     return Â, Â .+ values
+# end
+
 function generalized_advantage_estimate(rewards, values, γ, λ)
     gae = 0.0f0
     v = last(values)
     Â = zero(rewards)
-    v_vec = copy(values)
-    for i ∈ (length(rewards)-1):-1:1
-        δ = rewards[i] + γ * values[i+1] - values[i]
-        gae = δ + γ * λ * gae
+    for i ∈ length(rewards):-1:1
+        done = i == length(rewards)
+        # δ = rewards[i] + γ * values[i+1] - values[i]
+        gae = λ*γ*gae + rewards[i] - values[i]
+        !done && (gae += γ*values[i+1])
         Â[i] = gae
-        v_vec[i] = v = rewards[i] + γ*v
+        v = rewards[i] + γ*v
     end
-    return Â, v_vec
+    return Â, Â .+ values
 end
