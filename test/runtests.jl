@@ -49,10 +49,10 @@ ac = PPO.RecurMultiHead(
 
 sol = PPOSolver(
     ac,
-    optimizer = Flux.Optimiser(ClipNorm(0.5),Adam(Float32(1e-5))),
-    n_actors = 100,
+    optimizer = Flux.Optimiser(ClipNorm(0.5),Adam(Float32(1e-2))),
+    n_actors = 20,
     n_iters = 200,
-    n_epochs = 500,
+    n_epochs = 50,
     batch_size = 64,
     c_entropy = 0.01f0,
     c_value = 1.0f0,
@@ -113,9 +113,9 @@ for i ∈ 1:10
 end
 
 begin
-    _j = 1
-    plot(getindex.(vv1, _j), lw=2)
-    plot!(getindex.(vv2, _j), lw=2, ls=:dash)
+    _j = 7
+    plot(getindex.(vv1, _j), lw=2, label="All tiger left")
+    plot!(getindex.(vv2, _j), lw=2, ls=:dash, label="All tiger right")
 end
 
 
@@ -221,6 +221,13 @@ sol.mem[idx]
 
 ##
 data = PPO.sample_data(sol.mem, sol.batch_size)
-PPO.surrogate_loss(ac, data, 0.2f0, 1.0f0, 0.5f0)
+
+@code_warntype PPO.surrogate_loss(ac, data, sol.ϵ, sol.c_value, sol.c_entropy)
 
 @code_warntype PPO.process_last(ac,[SA[1.0f0, 1.0f0] for _ ∈ 1:10])
+
+sol.mem
+ob = PPO.ordered_batch(sol.mem, 100)
+plot(length.(getfield.(ob, :r)))
+
+div.(rand(1:400, 300), 20) |> histogram

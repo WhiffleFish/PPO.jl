@@ -21,6 +21,10 @@ function rollout(policy, pomdp::POMDP, max_steps::Int=policy.max_steps, s=rand(i
         oa = vec_oa(pomdp, o, a)
         step += 1
     end
+    pop!(oa_hist)
+    pop!(r_hist)
+    pop!(a_hist)
+    pop!(p_hist)
     return oa_hist, r_hist, a_hist, v_hist, p_hist
 end
 

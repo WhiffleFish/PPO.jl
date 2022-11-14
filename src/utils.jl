@@ -30,7 +30,7 @@ function full_loss(net, mem, ϵ)
     L_ENT = 0.0f0
 
     for i ∈ 1:length(mem)
-        mem.first[i] == i && Flux.reset!(net)
+        mem.first[i] == i && nograd_reset!(net)
 
         oa = mem.oa[i]
         p = mem.probs[i]
@@ -45,7 +45,7 @@ function full_loss(net, mem, ϵ)
         L_VF += abs2(v - only(v̂))
         L_ENT += entropy(a_dist)
     end
-    return -L_CLIP, L_VF/length(mem), -L_ENT/length(mem)
+    return -L_CLIP/length(mem), L_VF/length(mem), -L_ENT/length(mem)
 end
 
 function min_val_loss(mem)
