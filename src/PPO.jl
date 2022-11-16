@@ -18,4 +18,6 @@ include("train.jl")
 include("logging.jl")
 include("solver.jl")
 
+include(joinpath("FullyObservable", "fully_observable.jl"))
+
 end # module PPO

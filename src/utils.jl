@@ -19,10 +19,9 @@ end
 
 process_coeff(x::Number, t, T) = x
 
-function process_coeff(l::LinearAnneal,t,T)
-    m = (l.cf - l.c0) / T
-    return l.c0 + m*t
-end
+lerp(a,b,α) = (1-α)*a + α*b
+
+process_coeff(l::LinearAnneal,t,T) = lerp(l.c0, l.cf, t/T)
 
 function full_loss(net, mem, ϵ)
     L_CLIP = 0.0f0

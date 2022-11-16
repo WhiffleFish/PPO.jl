@@ -1,6 +1,6 @@
-struct PPOSolver{AC, MEM, OPT}
+mutable struct PPOSolver{AC, OPT}
     actor_critic::AC
-    mem::MEM
+    mem#::Union{FOBuffer, HistoryMemory}
     optimizer::OPT
     λ_GAE::Float32
     n_iters::Int
@@ -18,7 +18,7 @@ end
 
 function PPOSolver(
     actor_critic;
-    optimizer = Adam(Float32(3e-4)),
+    optimizer = Adam(3f-4),
     λ_GAE::Real = 0.95f0,
     n_iters::Integer = 10,
     n_actors::Integer = 10,
@@ -55,14 +55,32 @@ end
 
 Flux.@functor PPOSolver
 
-function POMDPs.solve(sol::PPOSolver, pomdp::POMDP)
+function POMDPs.solve(sol::PPOSolver, m::POMDP)
     T = sol.n_iters
     @showprogress for t ∈ 1:T
         empty!(sol.mem)
-        gen_data!(sol, pomdp)
+        gen_data!(sol, m)
         v̂ = cumulative_rewards(sol.mem)
         println(" ",v̂)
-        train!(
+        train_pomdp!(
+            sol,
+            round(Int, process_coeff(sol.n_epochs, t, T)),
+            process_coeff(sol.c_value, t, T),
+            process_coeff(sol.c_entropy, t, T)
+        )
+    end
+end
+
+function POMDPs.solve(sol::PPOSolver, m::MDP)
+    sol.mem = FOBuffer()
+    T = sol.n_iters
+
+    @showprogress for t ∈ 1:T
+        empty!(sol.mem)
+        gen_data!(sol, m)
+        v̂ = cumulative_rewards(sol.mem, sol.n_actors)
+        println(" ",v̂)
+        train_mdp!(
             sol,
             round(Int, process_coeff(sol.n_epochs, t, T)),
             process_coeff(sol.c_value, t, T),

@@ -32,7 +32,7 @@ Base.length(h::HistoryMemory) = length(h.oa)
 """
 append obs-act vector, reward,
 """
-function Base.append!(mem::HistoryMemory, oa, r, a, v, p, adv)
+function Base.append!(mem::HistoryMemory, oa, a, r, v, p, adv)
     @assert length(oa) == length(r) == length(a) == length(v) == length(p) == length(adv) """
     Loa = $(length(oa))
     Lr = $(length(r))

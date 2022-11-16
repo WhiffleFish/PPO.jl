@@ -1,9 +1,9 @@
-function gen_data!(sol, pomdp)
-    γ = Float32(discount(pomdp))
+function gen_data!(sol, m)
+    γ = Float32(discount(m))
     for act ∈ 1:sol.n_actors
-        oa, r, a, v̂, p = rollout(sol, pomdp)
+        s, a, r, v̂, p = rollout(sol, m)
         adv,v = generalized_advantage_estimate(r, v̂, γ, sol.λ_GAE)
-        append!(sol.mem, oa, r, a, v, p, adv)
+        append!(sol.mem, s, a, r, v, p, adv)
     end
     return sol.mem
 end
@@ -29,17 +29,9 @@ end
     return iszero(x) ? zero(result) : result
 end
 
-@inline function entropy(v::AbstractVector)
-    s = zero(eltype(v))
-    @inbounds for i ∈ eachindex(v)
-        s -= xlogx(v[i])
-    end
-    return s
-end
+entropy(arr::AbstractArray) = -sum(xlogx, arr)
 
-# @inline entropy(v::AbstractVector) = mapreduce(xlogx, -, v, init=zero(eltype(v)))
-
-function train!(sol, n_batches, c_value, c_entropy)
+function train_pomdp!(sol, n_batches, c_value, c_entropy)
     net = sol.actor_critic
     sol.normalize_advantage && whiten!(sol.mem.advantages)
     p = Flux.params(net)
@@ -49,14 +41,6 @@ function train!(sol, n_batches, c_value, c_entropy)
         data = sample_data(sol.mem, sol.batch_size)
         ∇ = Flux.gradient(p) do
             R_CLIP, L_VF, R_ENT = surrogate_loss(net, data, sol.ϵ, c_value, c_entropy)
-            # ChainRulesCore.ignore_derivatives() do
-            #     println("\nL_clp: ", -R_CLIP)
-            #     println("L_val: ", c_value*L_VF)
-            #     println("L_ent: ", -c_entropy*R_ENT)
-            #     # @show L_CLIP
-            #     # @show c_value*sqrt(L_VF)
-            #     # @show c_entropy*L_ENT
-            # end
             -(R_CLIP - c_value*L_VF + c_entropy*R_ENT)
         end
         Flux.Optimise.update!(opt, p, ∇)
@@ -68,7 +52,7 @@ end
 function train_full!(sol, n_epochs, c_value, c_entropy)
     net = sol.actor_critic
     sol.normalize_advantage && whiten!(sol.mem.advantages)
-    p = Flux.params(net)
+    θ = Flux.params(net)
     opt = deepcopy(sol.optimizer)
     l_hist = NTuple{3, Float32}[]
     for i ∈ 1:n_epochs
@@ -77,7 +61,7 @@ function train_full!(sol, n_epochs, c_value, c_entropy)
             @ignore_derivatives push!(l_hist, (L_CLIP, L_VF, L_ENT))
             l = L_CLIP + c_value*L_VF + c_entropy*L_ENT
         end
-        Flux.Optimise.update!(opt, p, ∇)
+        Flux.Optimise.update!(opt, θ, ∇)
     end
     push!(sol.logger.total_loss, l_hist)
 end

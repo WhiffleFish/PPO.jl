@@ -51,3 +51,16 @@ function weighted_sample(rng::Random.AbstractRNG, σ::AbstractVector)
 end
 
 weighted_sample(σ::AbstractVector) = weighted_sample(Random.GLOBAL_RNG, σ)
+
+struct SplitActorCritic{A,C}
+    actor::A
+    critic::C
+end
+
+Flux.@functor SplitActorCritic
+
+(ac::SplitActorCritic)(x) = ac.actor(x), ac.critic(x)
+
+struct JointActorCritic{AC}
+    ac::AC
+end

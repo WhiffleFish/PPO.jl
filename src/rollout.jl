@@ -25,7 +25,7 @@ function rollout(policy, pomdp::POMDP, max_steps::Int=policy.max_steps, s=rand(i
     pop!(r_hist)
     pop!(a_hist)
     pop!(p_hist)
-    return oa_hist, r_hist, a_hist, v_hist, p_hist
+    return oa_hist, a_hist, r_hist, v_hist, p_hist
 end
 
 function init_hist end
