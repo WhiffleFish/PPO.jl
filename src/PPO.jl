@@ -3,6 +3,7 @@ module PPO
 using POMDPs
 using Flux
 using Base.Iterators
+using LinearAlgebra
 using Statistics
 using ProgressMeter
 using ChainRulesCore

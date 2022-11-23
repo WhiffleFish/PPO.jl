@@ -8,7 +8,7 @@ bu = DiscreteUpdater(tiger)
 b0 = initialize_belief(bu, initialstate(tiger))
 
 ## THIS WORKS
-N = 3
+N = 10
 b = b0
 b_hist = [Float32.(b0.b)]
 for i ∈ 1:N
@@ -17,19 +17,44 @@ for i ∈ 1:N
 end
 b_hist
 
-X = [PPO.init_hist(pomdp), (SA[1.0f0, 1.0f0] for _ ∈ 1:N)...]
+X = [PPO.init_hist(tiger), (SA[1.0f0, 1.0f0] for _ ∈ 1:N)...]
 Y = b_hist
 
-net = Chain(LSTM(2,8), LSTM(8,2))
-lhist = train!(net, X, Y, 1000, Adam(1e-3))
+# net = Chain(LSTM(2,8), LSTM(8,2))
+net = LSTM(2,2)
+opt = Adam(1e-3)
+lhist = train!(net, X, Y, 10_000, opt)
 plot(lhist)
 last(lhist)
 
 
 Flux.reset!(net)
 bs = [net(x) for x ∈ X]
-plot(reduce(hcat,bs)')
-plot!(reduce(hcat,Y)', ls=:dash)
+plot(reduce(hcat,Y)', c=:blue, xlabel="t", ylabel="belief", lw=2, title="RNN Belief Updating", label="")
+plot!(reduce(hcat,bs)', ls=:dash, lw=2, c=:red, label="")
+
+## anim
+net = Chain(LSTM(2,8), LSTM(8,2))
+opt = Adam(1e-3)
+bs_dat = Matrix{Float32}[]
+for i ∈ 1:100
+    bs = [net(x) for x ∈ X]
+    push!(bs_dat, reduce(hcat,bs)')
+    lhist = train!(net, X, Y, 100, opt)
+    Flux.reset!(net)
+    # bs = [net(x) for x ∈ X]
+    # push!(bs_dat, reduce(hcat,bs)')
+end
+
+anim = @animate for i ∈ eachindex(bs_dat)
+    plot(0:10, reduce(hcat,Y)', c=:blue, xlabel="t", ylabel="belief", lw=2, title="RNN Belief Updating", label="")
+    plot!(0:10,bs_dat[i], ls=:dash, lw=2, c=:red, label="")
+end
+
+gif(anim, "rnn_bu.gif")
+
+
+##
 
 
 @inline function nograd_reset!(x)
@@ -356,5 +381,5 @@ plot(reduce(hcat,vv2)')
 ## Now what if we generalize to any ao sequence?
 
 function gen_xy(b0, bu, n)
-    
+
 end

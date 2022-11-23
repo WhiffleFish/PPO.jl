@@ -17,11 +17,18 @@ function train_mdp!(sol, n_batches, c_value, c_entropy)
             S = reduce(hcat, S)
             ∇ = Flux.gradient(θ) do
                 R_CLIP, L_VF, R_ENT = surrogate_loss(net, S, A, ADV, V, P, sol.ϵ)
-                @ignore_derivatives push!(l_hist, (-R_CLIP, L_VF, -R_ENT))
+                # @ignore_derivatives push!(l_hist, (-R_CLIP, L_VF, -R_ENT))
                 -(R_CLIP - c_value*L_VF + c_entropy*R_ENT)
+            end
+            ∇̂ = norm(∇)
+            if isnan(∇̂)
+                @warn("NaN gradients")
+                replace_nan_grads!(∇)
             end
             Flux.Optimise.update!(opt, θ, ∇)
         end
+        rc, lvf, rent = surrogate_loss(net, reduce(hcat,mem.s), mem.a, mem.adv, mem.v, mem.p, sol.ϵ)
+        push!(l_hist, (-rc, lvf, -rent))
     end
     push!(sol.logger.total_loss, l_hist)
 end

@@ -149,13 +149,11 @@ function generalized_advantage_estimate(rewards, values, γ, λ)
     T = length(rewards)
     vp = last(values)
     Â = zeros(Float32, T)
-    # vals = zeros(Float32, T)
     for i ∈ T:-1:1
         δ = rewards[i] + γ * values[i+1] - values[i]
         gae = δ + γ * λ * gae
         Â[i] = gae
         vp = rewards[i] + γ*vp
-        # vals[i] = vp
     end
     return Â, Â .+ values[1:end-1]
 end

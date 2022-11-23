@@ -31,6 +31,15 @@ end
 
 entropy(arr::AbstractArray) = -sum(xlogx, arr)
 
+function replace_nan_grads!(∇)
+    for v ∈ values(∇.grads)
+        v isa Array && replace!(v) do x
+            isnan(x) ? zero(eltype(v)) : x
+        end
+    end
+    ∇
+end
+
 function train_pomdp!(sol, n_batches, c_value, c_entropy)
     net = sol.actor_critic
     sol.normalize_advantage && whiten!(sol.mem.advantages)
@@ -43,7 +52,11 @@ function train_pomdp!(sol, n_batches, c_value, c_entropy)
             R_CLIP, L_VF, R_ENT = surrogate_loss(net, data, sol.ϵ, c_value, c_entropy)
             -(R_CLIP - c_value*L_VF + c_entropy*R_ENT)
         end
-        Flux.Optimise.update!(opt, p, ∇)
+        if isnan(∇̂)
+            @warn("NaN gradients")
+            replace_nan_grads!(∇)
+        end
+        Flux.Optimise.update!(opt, θ, ∇)
         push!(l_hist, full_loss(sol.actor_critic, sol.mem, sol.ϵ))
     end
     push!(sol.logger.total_loss, l_hist)

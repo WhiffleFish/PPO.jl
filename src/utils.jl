@@ -62,3 +62,12 @@ function min_val_loss(mem)
     end
     return sum(values(err_dict)) / length(err_dict)
 end
+
+# https://github.com/ancorso/Crux.jl/blob/369ca517819015b24068ee91d2019d6868eef5af/src/utils.jl#L49
+function LinearAlgebra.norm(grads::Flux.Zygote.Grads; p::Real = 2)
+    v = []
+    for θ in grads.params
+        !isnothing(grads[θ]) && push!(v, norm(grads[θ] |> cpu, p))
+    end
+    norm(v, p)
+end
