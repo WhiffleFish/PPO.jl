@@ -1,7 +1,6 @@
 whiten!(v, μ=mean(v), σ=std(v)) = @. v = (v - μ) / σ
 whiten(v, μ=mean(v), σ=std(v)) =  @. (v - μ) / σ
 
-
 """
     vec_ao(pomdp, a, o)
 
@@ -45,22 +44,6 @@ function full_loss(net, mem, ϵ)
         L_ENT += entropy(a_dist)
     end
     return -L_CLIP/length(mem), L_VF/length(mem), -L_ENT/length(mem)
-end
-
-function min_val_loss(mem)
-    last_hash = UInt(0)
-    oa_dict = Dict{UInt, Vector{Float32}}()
-    err_dict = Dict{UInt, Float32}()
-    for i ∈ 1:length(mem)
-        mem.first[i] == i && (last_hash = UInt(0))
-        last_hash = hash(mem.oa[i], last_hash)
-        vals = get!(oa_dict, last_hash) do
-            Float32[]
-        end
-        push!(vals, mem.values[i])
-        err_dict[last_hash] = sum(abs2, vals .- mean(vals))
-    end
-    return sum(values(err_dict)) / length(err_dict)
 end
 
 # https://github.com/ancorso/Crux.jl/blob/369ca517819015b24068ee91d2019d6868eef5af/src/utils.jl#L49

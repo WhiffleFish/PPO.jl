@@ -91,11 +91,11 @@ function actor_loss(actor, S, A, ADV, P, ϵ)
     return R_CLIP/L, R_ENT/L
 end
 
-critic_loss(critic, S, V) = sum(abs2, critic(S) .- V)
+critic_loss(critic, S, V) = sum(abs2, vec(critic(S)) .- V)
 
 function surrogate_loss(net, S, A, ADV, V, P, ϵ)
     Π, V̂ = net(S)
-    # V̂ = vec(V̂)
+    V̂ = vec(V̂)
     L = length(V)
     r_t = [Π[A[i],i] / P[i] for i ∈ eachindex(P,A)]
     surr1 = r_t .* ADV
@@ -111,7 +111,8 @@ end
     return iszero(x) ? zero(result) : result
 end
 
-entropy(arr::AbstractArray) = -sum(xlogx, arr)
+# much faster gradient than -sum(xlogx, arr)
+entropy(arr::AbstractArray) = -sum(xlogx.(arr))
 
 function replace_nan_grads!(∇)
     for v ∈ values(∇.grads)
