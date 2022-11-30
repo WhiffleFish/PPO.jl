@@ -1,6 +1,6 @@
 mutable struct PPOSolver{AC, OPT}
     actor_critic::AC
-    mem#::Union{FOBuffer, HistoryMemory}
+    mem::FOBuffer
     optimizer::OPT
     λ_GAE::Float32
     n_iters::Int
@@ -34,7 +34,7 @@ function PPOSolver(
 
     return PPOSolver(
         actor_critic,
-        HistoryMemory(),
+        FOBuffer(),
         optimizer,
         maybe_convert_f32(λ_GAE),
         n_iters,
@@ -55,36 +55,28 @@ end
 
 Flux.@functor PPOSolver
 
-function POMDPs.solve(sol::PPOSolver, m::POMDP)
-    T = sol.n_iters
-    @showprogress for t ∈ 1:T
-        empty!(sol.mem)
-        gen_data!(sol, m)
-        v̂ = cumulative_rewards(sol.mem)
-        println(" ",v̂)
-        train_pomdp!(
-            sol,
-            round(Int, process_coeff(sol.n_epochs, t, T)),
-            process_coeff(sol.c_value, t, T),
-            process_coeff(sol.c_entropy, t, T)
-        )
-    end
-end
-
 function POMDPs.solve(sol::PPOSolver, m::MDP)
-    sol.mem = FOBuffer()
     T = sol.n_iters
-
     @showprogress for t ∈ 1:T
         empty!(sol.mem)
         gen_data!(sol, m)
         v̂ = cumulative_rewards(sol.mem, sol.n_actors)
-        println(" ",v̂)
-        train_mdp!(
-            sol,
-            round(Int, process_coeff(sol.n_epochs, t, T)),
-            process_coeff(sol.c_value, t, T),
-            process_coeff(sol.c_entropy, t, T)
-        )
+        println(" ",round(v̂;sigdigits=3))
+        push!(sol.logger.rewards, v̂)
+        if sol.actor_critic isa SplitActorCritic
+            split_train!(
+                sol,
+                round(Int, process_coeff(sol.n_epochs, t, T)),
+                process_coeff(sol.c_value, t, T),
+                process_coeff(sol.c_entropy, t, T)
+            )
+        else
+            train!(
+                sol,
+                round(Int, process_coeff(sol.n_epochs, t, T)),
+                process_coeff(sol.c_value, t, T),
+                process_coeff(sol.c_entropy, t, T)
+            )
+        end
     end
 end

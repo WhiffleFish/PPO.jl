@@ -8,8 +8,9 @@ using Statistics
 using ProgressMeter
 using ChainRulesCore
 using Random
+using RecipesBase
 
-export PPOSolver, MultiHead
+export PPOSolver
 
 include("memory.jl")
 include("utils.jl")
@@ -18,7 +19,5 @@ include("rollout.jl")
 include("train.jl")
 include("logging.jl")
 include("solver.jl")
-
-include(joinpath("FullyObservable", "fully_observable.jl"))
 
 end # module PPO
