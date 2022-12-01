@@ -1,8 +1,23 @@
+struct MultiHead{B,H<:Tuple}
+    base::B
+    heads::H
+    MultiHead(base, heads...) = new{typeof(base), typeof(heads)}(base, heads)
+end
+
+Flux.@functor MultiHead
+
+function (f::MultiHead)(x)
+    u = f.base(x)
+    return map(h -> h(u), f.heads)
+end
+
 struct RecurMultiHead{R, B, H<:Tuple}
     recur::R
     base::B
     heads::H
-    RecurMultiHead(recur, base, args...) = new{typeof(recur), typeof(base), typeof(args)}(recur, base, args)
+    function RecurMultiHead(recur, base, args...)
+        new{typeof(recur), typeof(base), typeof(args)}(recur, base, args)
+    end
 end
 
 function (m::RecurMultiHead)(x)

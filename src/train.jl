@@ -97,7 +97,9 @@ function surrogate_loss(net, S, A, ADV, V, P, ϵ)
     Π, V̂ = net(S)
     V̂ = vec(V̂)
     L = length(V)
-    r_t = [Π[A[i],i] / P[i] for i ∈ eachindex(P,A)]
+    r_t = map(eachcol(Π), P, A) do col, vi, i
+        col[i] / vi
+    end
     surr1 = r_t .* ADV
     surr2 = clamp.(r_t, 1f0 - ϵ, 1f0 + ϵ) .* ADV
     R_CLIP = sum(min.(surr1, surr2))
