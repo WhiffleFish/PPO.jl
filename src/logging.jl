@@ -16,3 +16,25 @@ struct Logger
     loss::Vector{LossHist}
     Logger() = new(Float32[], LossHist[])
 end
+
+@recipe function f(log::Logger, smooth::AbstractSmoother)
+    xlabel --> "Training Iteration"
+    ylabel --> "Returns"
+    @series begin
+        label --> "smooth"
+        smooth(log.rewards)
+    end
+    @series begin
+        alpha --> 0.5
+        label --> "raw"
+        log.rewards
+    end
+
+end
+
+@recipe function f(log::Logger)
+    xlabel --> "Training Iteration"
+    ylabel --> "Returns"
+    label --> ""
+    log.rewards
+end

@@ -54,3 +54,40 @@ function LinearAlgebra.norm(grads::Flux.Zygote.Grads; p::Real = 2)
     end
     norm(v, p)
 end
+
+
+##
+
+abstract type AbstractSmoother end
+
+struct GaussSmooth <: AbstractSmoother
+    σ::Float64
+    GaussSmooth(σ = 10.) = new(convert(Float64, σ))
+end
+
+function _gauss_smooth(v, σ)
+    dist = Normal(0,σ)
+    r2 = zero(v)
+    for i ∈ eachindex(v)
+        val = 0.0
+        ws = 0.0
+        for j ∈ eachindex(v)
+            w = pdf(dist, i-j)
+            ws += w
+            val += w*v[j]
+        end
+        r2[i] = val / ws
+    end
+    return r2
+end
+
+(smoother::GaussSmooth)(v) = _gauss_smooth(v, smoother.σ)
+
+struct AvgSmooth <: AbstractSmoother
+    n::Int
+    AvgSmooth(n = 10) = new(n)
+end
+
+moving_average(v, n) = [sum(@view v[i:(i+n-1)])/n for i in 1:(length(v)-(n-1))]
+
+(smoother::AvgSmooth)(v) = moving_average(v, smoother.n)

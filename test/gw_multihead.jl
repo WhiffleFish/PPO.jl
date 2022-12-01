@@ -11,10 +11,10 @@ end
 
 mdp = SimpleGridWorld()
 
-PPO.s_vec(m::SimpleGridWorld, s) = s
+PPO.s_vec(m::SimpleGridWorld, s) = s ./ m.size
 
 d = PPO.MultiHead(
-    Chain(Dense(2,64,relu), Dense(64,64,relu)),
+    Chain(Dense(2,64,tanh), Dense(64,64,tanh)),
     Chain(Dense(64,4), softmax),
     Dense(64, 1)
 )
@@ -23,7 +23,7 @@ sol = PPOSolver(
     d;
     n_actors = 30,
     n_iters = 500,
-    n_epochs = 100,
+    n_epochs = 50,
     batch_size = 128,
     optimizer = Adam(1f-4),
     ϵ = 0.2f0,
@@ -37,9 +37,9 @@ solve(sol, mdp)
 # NEW POLICY/VALUE FUNCTION SHOULD BE A BLEND OF PREVIOUS AND CURRENT FITTED DATA
 
 using Plots
-plot(sol.logger.loss[5].clip)
+plot(sol.logger.loss[1].clip)
 plot(sol.logger.loss[4].value)
-plot(sol.logger.loss[7].entropy)
+plot(sol.logger.loss[10].entropy)
 plot(sol.logger.rewards)
 
 moving_average(vs,n) = [sum(@view vs[i:(i+n-1)])/n for i in 1:(length(vs)-(n-1))]
@@ -77,3 +77,8 @@ end
 
 heatmap(r; c=:PiYG, xticks=1:10, yticks=1:10)
 savefig("reward_distribution.svg")
+
+
+plot(sol.logger, GaussSmooth(10), lw=2)
+plot(sol.logger, AvgSmooth(10), lw=2)
+plot(sol.logger)
