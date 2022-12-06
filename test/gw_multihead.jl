@@ -11,12 +11,15 @@ end
 
 mdp = SimpleGridWorld()
 
-PPO.s_vec(m::SimpleGridWorld, s) = s ./ m.size
+PPO.s_vec(m::SimpleGridWorld, s) = (s .- (m.size ./2)) ./ m.size
 
+_init = (args...) -> Flux.orthogonal(args...;gain=√2)
+
+# orthogonal init with gain √2
 d = PPO.MultiHead(
-    Chain(Dense(2,64,tanh), Dense(64,64,tanh)),
-    Chain(Dense(64,4), softmax),
-    Dense(64, 1)
+    Chain(Dense(2,64,tanh; init=_init), Dense(64,64,tanh;init=_init)),
+    Chain(Dense(64,4;init=_init), softmax),
+    Dense(64, 1;init=_init)
 )
 
 sol = PPOSolver(
@@ -25,7 +28,7 @@ sol = PPOSolver(
     n_iters = 500,
     n_epochs = 50,
     batch_size = 128,
-    optimizer = Adam(1f-4),
+    optimizer = Flux.Optimiser(ClipNorm(0.5f0), Adam(1f-4, (0.9f0, 0.999f0), 1.0f-5)),
     ϵ = 0.2f0,
     c_entropy = 0.1f0
 )
@@ -44,6 +47,7 @@ plot(sol.logger.rewards)
 
 moving_average(vs,n) = [sum(@view vs[i:(i+n-1)])/n for i in 1:(length(vs)-(n-1))]
 
+plot(sol.logger, GaussSmooth(20), lw=2)
 plot(moving_average(sol.logger.rewards,10), lw=2, label="", title="PPO GW returns")
 plot!(sol.logger.rewards, alpha=0.5, label="")
 # savefig("ppo_returns.svg")

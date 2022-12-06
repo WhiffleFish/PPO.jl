@@ -13,7 +13,7 @@ using Distributions
 
 export PPOSolver
 
-include("memory.jl")
+include("buffer.jl")
 
 include("utils.jl")
 export GaussSmooth, AvgSmooth

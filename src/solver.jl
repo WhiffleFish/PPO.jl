@@ -1,13 +1,13 @@
 mutable struct PPOSolver{AC, OPT}
     actor_critic::AC
-    mem::FOBuffer
+    mem::Buffer
     optimizer::OPT
     λ_GAE::Float32
     n_iters::Int
-    n_actors::Int
+    n::Int
     n_epochs
     n_steps
-    max_steps::Int
+    T::Int
     batch_size::Int
     c_value
     c_entropy
@@ -21,9 +21,9 @@ function PPOSolver(
     optimizer = Adam(3f-4),
     λ_GAE::Real = 0.95f0,
     n_iters::Integer = 10,
-    n_actors::Integer = 10,
+    n::Integer = 10,
     n_epochs = 50,
-    n_steps = 20,
+    T = 20,
     max_steps::Integer = 20,
     batch_size::Integer = 16,
     c_value = 0.1f0,
@@ -34,13 +34,13 @@ function PPOSolver(
 
     return PPOSolver(
         actor_critic,
-        FOBuffer(),
+        Buffer(0,0,0),
         optimizer,
         maybe_convert_f32(λ_GAE),
         n_iters,
-        n_actors,
+        n,
         n_epochs,
-        n_steps,
+        T,
         max_steps,
         batch_size,
         maybe_convert_f32(c_value),
@@ -55,13 +55,16 @@ end
 
 Flux.@functor PPOSolver
 
-function POMDPs.solve(sol::PPOSolver, m::MDP)
+function POMDPs.solve(sol::PPOSolver, mdp::MDP)
+    γ = discount(mdp)
+    statedim = length(s_vec(mdp,rand(initialstate(mdp))))
+    sol.mem = Buffer(sol.n, sol.T, statedim)
     T = sol.n_iters
     prog = Progress(T)
+    m = VectorizedMDP(mdp, sol.n, sol.T)
     for t ∈ 1:T
-        empty!(sol.mem)
-        gen_data!(sol, m)
-        v̂ = cumulative_rewards(sol.mem, sol.n_actors)
+        gen_data!(sol, m, γ)
+        v̂ = cumulative_rewards(sol.mem, γ)
         push!(sol.logger.rewards, v̂)
         if sol.actor_critic isa SplitActorCritic
             split_train!(
