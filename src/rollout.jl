@@ -21,7 +21,7 @@ function gen!(m::VectorizedMDP, S::AbstractVector, S_v::AbstractMatrix, A, V, bu
         sv = s_vec(mdp, S[env])
 
         S_v[:,env] .= sv
-        buff.S[:,idx] = sv
+        buff.S[:,idx] .= sv
         buff.A[idx] = a_idx
         buff.R[idx] = r
         buff._V[idx] = V[env]

@@ -24,11 +24,15 @@ d = PPO.MultiHead(
 
 sol = PPOSolver(
     d;
-    n_actors = 30,
+    n = 30,
+    T = 30,
     n_iters = 500,
-    n_epochs = 50,
+    n_epochs = 25,
     batch_size = 128,
-    optimizer = Flux.Optimiser(ClipNorm(0.5f0), Adam(1f-4, (0.9f0, 0.999f0), 1.0f-5)),
+    optimizer = Flux.Optimiser(
+        ClipNorm(0.5f0),
+        Adam(1f-4, (0.9f0, 0.999f0), 1.0f-5)
+    ),
     ϵ = 0.2f0,
     c_entropy = 0.1f0
 )
@@ -44,8 +48,6 @@ plot(sol.logger.loss[1].clip)
 plot(sol.logger.loss[4].value)
 plot(sol.logger.loss[10].entropy)
 plot(sol.logger.rewards)
-
-moving_average(vs,n) = [sum(@view vs[i:(i+n-1)])/n for i in 1:(length(vs)-(n-1))]
 
 plot(sol.logger, GaussSmooth(20), lw=2)
 plot(moving_average(sol.logger.rewards,10), lw=2, label="", title="PPO GW returns")
@@ -70,7 +72,7 @@ begin
     v = zeros(mdp.size...)
     n = zeros(mdp.size...)
     for s ∈ states(mdp)
-        vs = sol.mem.v[map(≈(PPO.s_vec(mdp,s)),sol.mem.s)]
+        vs = sol.mem.V[map(≈(PPO.s_vec(mdp,s)),eachcol(sol.mem.S))]
         if all(s .> GWPos(0,0))
             v̂ = sum(vs) / length(vs)
             v[s...] = v̂

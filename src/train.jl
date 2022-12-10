@@ -17,6 +17,7 @@ function train!(sol, n_batches, c_value, c_entropy)
         s_data = (mem.S[:, _idxs] for _idxs ∈ mb_idxs)
         a_data = (mem.A[_idxs] for _idxs ∈ mb_idxs)
         adv_data = (mem.ADV[_idxs] for _idxs ∈ mb_idxs)
+        sol.normalize_advantage && (whiten!(adv) for adv ∈ adv_data)
         v_data = (mem.V[_idxs] for _idxs ∈ mb_idxs)
         p_data = (mem.P[_idxs] for _idxs ∈ mb_idxs)
 
@@ -32,7 +33,7 @@ function train!(sol, n_batches, c_value, c_entropy)
             end
             Flux.Optimise.update!(opt, θ, ∇)
         end
-        rc, lvf, rent = surrogate_loss(net, reduce(hcat,mem.s), mem.a, mem.adv, mem.v, mem.p, sol.ϵ)
+        rc, lvf, rent = surrogate_loss(net, mem.S, mem.A, mem.ADV, mem.V, mem.P, sol.ϵ)
         push!(l_hist, -rc, lvf, -rent)
     end
     push!(sol.logger.loss, l_hist)
@@ -47,8 +48,8 @@ function split_train!(sol, n_batches, c_value, c_entropy)
 
     θa = Flux.params(actor)
     θc = Flux.params(critic)
-    actor_opt = deepcopy(sol.optimizer)
-    critic_opt = deepcopy(sol.optimizer)
+    actor_opt = sol.optimizer
+    critic_opt = sol.optimizer
     l_hist = LossHist()
     for i ∈ 1:sol.n_epochs
         shuffle!(idxs)
@@ -58,6 +59,7 @@ function split_train!(sol, n_batches, c_value, c_entropy)
         s_data = (mem.S[:, _idxs] for _idxs ∈ mb_idxs)
         a_data = (mem.A[_idxs] for _idxs ∈ mb_idxs)
         adv_data = (mem.ADV[_idxs] for _idxs ∈ mb_idxs)
+        sol.normalize_advantage && (whiten!(adv) for adv ∈ adv_data)
         v_data = (mem.V[_idxs] for _idxs ∈ mb_idxs)
         p_data = (mem.P[_idxs] for _idxs ∈ mb_idxs)
 

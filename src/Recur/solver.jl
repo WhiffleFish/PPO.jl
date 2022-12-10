@@ -1,7 +1,6 @@
-function POMDPs.solve(sol::PPOSolver, m::MDP)
+function POMDPs.solve(sol::PPOSolver, m::POMDP)
     T = sol.n_iters
     @showprogress for t ∈ 1:T
-        empty!(sol.mem)
         gen_data!(sol, m)
         v̂ = cumulative_rewards(sol.mem, sol.n_actors)
         println(" ",round(v̂;sigdigits=3))

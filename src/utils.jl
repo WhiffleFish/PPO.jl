@@ -46,16 +46,6 @@ function full_loss(net, mem, ϵ)
     return -L_CLIP/length(mem), L_VF/length(mem), -L_ENT/length(mem)
 end
 
-# https://github.com/ancorso/Crux.jl/blob/369ca517819015b24068ee91d2019d6868eef5af/src/utils.jl#L49
-function LinearAlgebra.norm(grads::Flux.Zygote.Grads; p::Real = 2)
-    v = []
-    for θ in grads.params
-        !isnothing(grads[θ]) && push!(v, norm(grads[θ] |> cpu, p))
-    end
-    norm(v, p)
-end
-
-
 ##
 
 abstract type AbstractSmoother end
@@ -65,8 +55,8 @@ struct GaussSmooth <: AbstractSmoother
     GaussSmooth(σ = 10.) = new(convert(Float64, σ))
 end
 
-function _gauss_smooth(v, σ)
-    dist = Normal(0,σ)
+function _gauss_smooth(v::AbstractVector{T}, σ) where T
+    dist = Normal(zero(T),T(σ))
     r2 = zero(v)
     for i ∈ eachindex(v)
         val = 0.0
