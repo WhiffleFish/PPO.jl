@@ -24,4 +24,6 @@ include("train.jl")
 include("logging.jl")
 include("solver.jl")
 
+include(joinpath("Recur", "recur.jl"))
+
 end # module PPO

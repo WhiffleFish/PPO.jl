@@ -26,19 +26,6 @@ struct Buffer
     )
 end
 
-# function cumulative_rewards(buff::Buffer, γ=1f0)
-#     (;n,T) = buff
-#     v = 0f0
-#     for env ∈ 1:n
-#         discount = 1f0
-#         for r ∈ @view buff.R[T*(env-1)+1 : T*env]
-#             v += discount*r
-#             discount *= γ
-#         end
-#     end
-#     return v / n
-# end
-
 function cumulative_rewards(buff::Buffer, γ=1f0)
     return sum(buff.R) / buff.n
 end
